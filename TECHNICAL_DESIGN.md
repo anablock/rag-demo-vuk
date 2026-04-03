@@ -1,6 +1,6 @@
 # RAG System Technical Design
 
-A reusable design reference for building retrieval-augmented generation systems over document corpora. Patterns here are language- and framework-agnostic unless noted.
+A reusable design reference for building retrieval-augmented generation systems over document corpora.
 
 ---
 
