@@ -36,11 +36,9 @@ getInformation: tool({
 The model reasons about what to search for as part of generating its tool call arguments — within the same API request.
 
 
-This query uses approximate nearest neighbor (ANN) via the HNSW
-   index, but the SQL itself is doing an exhaustive similarity scan with a
-  threshold filter, not a pure k-NN query.
+This query uses approximate nearest neighbor (ANN) via the HNSW index, but the SQL itself is doing an exhaustive similarity scan with a threshold filter, not a pure k-NN query.
 
-  What the query actually does
+What the query actually does:
 
   1. Computes cosine similarity between the query embedding and every row in
   the table
