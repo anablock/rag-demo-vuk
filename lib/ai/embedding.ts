@@ -38,8 +38,8 @@ export const findRelevantContent = async (userQuery: string) => {
   const similarGuides = await db
     .select({ name: embeddings.content, similarity })
     .from(embeddings)
-    .where(gt(similarity, 0.3))
+    .where(gt(similarity, 0.25))
     .orderBy((t) => desc(t.similarity))
-    .limit(4);
+    .limit(16);
   return similarGuides;
 };
