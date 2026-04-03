@@ -36,11 +36,9 @@ getInformation: tool({
 The model reasons about what to search for as part of generating its tool call arguments — within the same API request.
 
 
-this query uses approximate nearest neighbor (ANN) via the HNSW
+This query uses approximate nearest neighbor (ANN) via the HNSW
    index, but the SQL itself is doing an exhaustive similarity scan with a
   threshold filter, not a pure k-NN query.
-
-  Here's the distinction:
 
   What the query actually does
 
@@ -62,37 +60,6 @@ this query uses approximate nearest neighbor (ANN) via the HNSW
   traversal to find candidates quickly. So the algorithm running underneath is
   ANN — but the query semantics are threshold-filtered top-K, not strict k-NN.
 
-  The practical difference
-
-  ┌──────────────────────────────────────┬─────────────────────────────────┐
-  │  Pure k-NN (ORDER BY ... LIMIT 16)   │   Threshold + top-K (current)   │
-  ├──────────────────────────────────────┼─────────────────────────────────┤
-  │ Always returns exactly 16 results    │ May return fewer than 16 if     │
-  │                                      │ corpus is sparse                │
-  ├──────────────────────────────────────┼─────────────────────────────────┤
-  │ Can return irrelevant results if     │ Filters out noise below         │
-  │ top-16 are all low-similarity        │ threshold                       │
-  ├──────────────────────────────────────┼─────────────────────────────────┤
-  │ Better when you always need N        │ Better when result quality      │
-  │ results                              │ matters more than result count  │
-  └──────────────────────────────────────┴─────────────────────────────────┘
-
-  For a RAG system, the threshold filter is the right call — you don't want to
-  inject low-relevance chunks into the prompt just to hit a count. A pure LIMIT
-   16 without a threshold would return 16 results even if the best match has
-  similarity 0.1, which would pollute the context sent to GPT-4o.
-
-  If you wanted strict k-NN
-
-  pgvector supports it with the <=> operator directly:
-
-  SELECT content FROM embeddings
-  ORDER BY embedding <=> '[query_vector]'
-  LIMIT 16;
-
-  This is pure ANN (no threshold), uses the HNSW index optimally, and always
-  returns exactly 16 rows. You'd then filter by quality in application code
-  after the fact.
 ---
 
 ## Ingestion pipeline
