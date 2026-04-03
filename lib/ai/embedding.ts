@@ -31,7 +31,16 @@ export const generateEmbedding = async (value: string): Promise<number[]> => {
   });
   return embedding;
 };
+/**
+ * What the query actually does:
 
+  1. Computes cosine similarity between the query embedding and every row in the table
+  2. Filters to rows where similarity > 0.25
+  3. Orders by similarity descending
+  4. Returns the top 1
+ * @param userQuery 
+ * @returns 
+ */
 export const findRelevantContent = async (userQuery: string) => {
   const userQueryEmbedded = await generateEmbedding(userQuery);
   const similarity = sql<number>`1 - (${cosineDistance(embeddings.embedding, userQueryEmbedded)})`;

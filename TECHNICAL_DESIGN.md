@@ -40,8 +40,7 @@ This query uses approximate nearest neighbor (ANN) via the HNSW index, but the S
 
 What the query actually does:
 
-  1. Computes cosine similarity between the query embedding and every row in
-  the table
+  1. Computes cosine similarity between the query embedding and every row in the table
   2. Filters to rows where similarity > 0.25
   3. Orders by similarity descending
   4. Returns the top 16
