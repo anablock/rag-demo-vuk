@@ -60,13 +60,60 @@ npm run db:migrate
 
 ### 4. Ingest the EDGAR corpus
 
-Place the unzipped corpus at the path set in `CORPUS_DIR` inside `scripts/ingest-edgar.ts` (default: `~/Downloads/edgar_corpus`), then run:
+**Download and unzip the corpus**
+
+Download `edgar_corpus.zip` and unzip it. You should have a directory containing `.txt` filings and a `manifest.json`:
+
+```
+edgar_corpus/
+  manifest.json
+  aapl_10k_2024.txt
+  tsla_10q_2024q2.txt
+  ...
+```
+
+**Point the script at your corpus directory**
+
+Open `scripts/ingest-edgar.ts` and update `CORPUS_DIR` to match where you unzipped the corpus:
+
+```ts
+const CORPUS_DIR = "/path/to/edgar_corpus"; // edit this line
+```
+
+By default it points to `~/Downloads/edgar_corpus`.
+
+**Run ingestion**
 
 ```bash
 npm run ingest:edgar
 ```
 
-This processes all `.txt` files with concurrency 3, prints live progress, and reports errors. Expect 5–20 minutes depending on corpus size and API rate limits.
+The script will:
+1. Find all `.txt` files in the corpus directory
+2. Extract readable text from each filing (strips metadata headers and XBRL markup)
+3. Chunk each filing into ~800-character segments with 100-character overlap
+4. Batch-embed all chunks using `text-embedding-ada-002` (96 chunks per API call)
+5. Insert resources and embeddings into your Postgres database
+
+Live progress is printed to the terminal:
+
+```
+[47/210] 83s elapsed — tsla_10k_2024.txt (34 chunks)
+```
+
+Any files that fail are collected and reported at the end without stopping the run.
+
+**Expected duration:** 5–20 minutes depending on corpus size and your OpenAI API rate limit tier.
+
+**Verify ingestion**
+
+After the script completes, confirm rows were inserted:
+
+```bash
+npm run db:studio
+```
+
+Open the Drizzle Studio URL in your browser and check that the `embeddings` table has rows.
 
 ---
 

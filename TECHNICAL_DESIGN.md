@@ -155,6 +155,36 @@ const results = await db
   .limit(16);                     // per query; multiply by number of queries for total context
 ```
 
+### Retrieval algorithm: ANN with threshold-filtered top-K
+
+This query is **not** pure k-nearest-neighbor. It uses two mechanisms in combination:
+
+**1. Approximate nearest neighbor (ANN) via HNSW index**
+
+The HNSW index accelerates distance computation using graph traversal — it does not scan every row. Without the index, Postgres would do a full sequential scan comparing the query vector against every embedding. With it, candidates are found in O(log n) time. This is *approximate* because HNSW may occasionally miss a slightly better match in exchange for dramatically faster queries.
+
+**2. Threshold-filtered top-K (the query semantics)**
+
+The `WHERE gt(similarity, 0.25)` filter and `LIMIT 16` operate on top of the ANN candidates. This is *not* the same as pure k-NN:
+
+| Approach | Behavior |
+|---|---|
+| Pure k-NN: `ORDER BY embedding <=> query LIMIT 16` | Always returns exactly 16 results, even if all have low similarity |
+| Threshold + top-K (current) | Returns up to 16 results, but only those above the similarity threshold |
+
+For RAG specifically, the threshold matters: you do not want to inject low-relevance chunks into the prompt just to hit a count. A pure `LIMIT 16` without a threshold would return 16 results even if the best match scores 0.1, polluting the context sent to the LLM.
+
+**Pure k-NN syntax (pgvector `<=>` operator):**
+
+```ts
+// Strict ANN — always returns exactly N results, no threshold
+const results = await db.execute(
+  sql`SELECT content FROM embeddings ORDER BY embedding <=> ${queryEmbedding} LIMIT 16`
+);
+```
+
+Use pure k-NN when you always need a fixed number of results (e.g., a recommendation system). Use threshold-filtered top-K when result quality matters more than result count (e.g., RAG context injection).
+
 **Tuning thresholds:**
 
 | Threshold | Effect |
